@@ -27,4 +27,13 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(data)
 }
 
-export async function PATCH(req: NextRequest
+export async function PATCH(req: NextRequest) {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const body = await req.json()
+  const { id, ...updates } = body
+  const { data, error } = await supabaseAdmin.from('items').update(updates).eq('id', id).eq('user_id', userId).select().single()
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data)
+}

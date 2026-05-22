@@ -16,17 +16,27 @@ export async function POST(req: NextRequest) {
 Return ONLY valid JSON with these exact fields:
 {
   "title": "short action title, max 80 chars",
-  "summary": "1-2 sentence summary",
-  "action_required": "the specific action needed",
-  "responsible_party": "name of person or company responsible",
-  "company": "their company",
+  "summary": "1-2 sentence summary of the email context",
+  "action_required": "the specific action that needs to happen",
+  "responsible_party": "name of the person or company responsible",
+  "company": "their company or organisation",
   "discipline": "one of: Architecture, Structure, Services, Civil, Facade, Fire, Acoustic, ESD, Contractor, Client, Project Management, Cost Management, Other",
-  "due_date": "YYYY-MM-DD or empty string",
+  "due_date": "YYYY-MM-DD format, or empty string if not mentioned",
   "register_type": "one of: RFI, APR, SUB, VAR, EOT, DEF, SI, ACT",
   "priority": "one of: High, Medium, Low",
-  "status": "appropriate starting status",
-  "suggested_follow_up_email": "draft follow-up email body"
+  "status": "the most appropriate starting status for this type",
+  "suggested_follow_up_email": "a draft professional follow-up email body if this item is not actioned"
 }
+
+Register type guide:
+- RFI: Request for information or clarification
+- APR: Approval required (samples, shop drawings, materials)
+- SUB: Submittal of drawings or documentation for review
+- VAR: Variation or change to the contract
+- EOT: Extension of time claim
+- DEF: Defect or non-conformance issue
+- SI: Site instruction from superintendent
+- ACT: General action or follow-up item
 
 Email:
 ${emailText}`
@@ -46,12 +56,20 @@ ${emailText}`
       }),
     })
 
+    if (!response.ok) {
+      const err = await response.text()
+      console.error('Anthropic error:', err)
+      return NextResponse.json({ error: 'Extraction failed' }, { status: 502 })
+    }
+
     const data = await response.json()
     const text = data.content?.[0]?.text ?? '{}'
     const cleaned = text.replace(/```json|```/g, '').trim()
     const parsed = JSON.parse(cleaned)
+
     return NextResponse.json(parsed)
   } catch (err) {
+    console.error('Extract error:', err)
     return NextResponse.json({ error: 'Failed to parse response' }, { status: 500 })
   }
 }
