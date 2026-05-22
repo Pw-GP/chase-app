@@ -50,7 +50,7 @@ export default function LandingPage() {
         <p className="landing-sub">Paste a project email and Chase automatically extracts actions, approvals, RFIs and follow-ups into one clean dashboard.</p>
         <div className="landing-actions">
           <Link href="/app" className="landing-btn landing-btn-primary">Start for free</Link>
-          <Link href="/app" className="landing-btn landing-btn-secondary">See a demo</Link>
+          <Link href="/demo" className="landing-btn landing-btn-secondary">See a demo</Link>
         </div>
         <div className="landing-note">No credit card &nbsp;·&nbsp; 5-minute setup &nbsp;·&nbsp; Works with any email client</div>
       </div>
