@@ -6,10 +6,7 @@ const isProtectedRoute = createRouteMatcher([
   '/api/projects(.*)'
 ])
 
-const isDemoRoute = createRouteMatcher(['/demo(.*)'])
-
 export default clerkMiddleware((auth, req) => {
-  if (isDemoRoute(req)) return
   if (isProtectedRoute(req)) {
     auth().protect()
   }
