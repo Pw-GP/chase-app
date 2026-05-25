@@ -27,13 +27,13 @@ function fmtDate(d: string) {
 export default function Dashboard() {
   const searchParams = useSearchParams()
   const selProject = searchParams.get('project')
-  const filterType = searchParams.get('type') as RegisterType | null
+  const urlType = searchParams.get('type') as RegisterType | null
 
   const [items, setItems] = useState<any[]>([])
   const [projects, setProjects] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [activeCard, setActiveCard] = useState<string|null>(null)
-  const [activeType, setActiveType] = useState<RegisterType|'all'>('all')
+  const [activeType, setActiveType] = useState<RegisterType|'all'>(urlType ?? 'all')
   const [detail, setDetail] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -44,8 +44,16 @@ export default function Dashboard() {
     setLoading(false)
   }, [])
 
-  useEffect(() => { load(); window.addEventListener('chase:refresh', load); return () => window.removeEventListener('chase:refresh', load) }, [load])
-  useEffect(() => { if (filterType) setActiveType(filterType) }, [filterType])
+  useEffect(() => {
+    load()
+    window.addEventListener('chase:refresh', load)
+    return () => window.removeEventListener('chase:refresh', load)
+  }, [load])
+
+  // Update activeType when URL param changes
+  useEffect(() => {
+    setActiveType(urlType ?? 'all')
+  }, [urlType])
 
   const scoped = selProject ? items.filter(i => i.project_id === selProject) : items
   const openCount    = scoped.filter(i => !isClosed(i) && !isOverdue(i) && !isAwaiting(i)).length
@@ -71,8 +79,8 @@ export default function Dashboard() {
 
   function exportCSV() {
     const headers = ['Number','Type','Title','Project','Responsibility','Discipline','Issued','Due','Status','Notes']
-    const rows = filtered.map(i => { const p = projects.find(pp => pp.id === i.project_id); return [i.number,i.type,i.title,p?.name??'',i.responsible,i.discipline,i.issued,i.due_date,i.status,i.notes] })
-    const csv = [headers,...rows].map(r => r.map((c: any) => `"${(c??'').toString().replace(/"/g,'""')}"`).join(',')).join('\n')
+    const rows = filtered.map(i => { const p = projects.find((pp:any) => pp.id === i.project_id); return [i.number,i.type,i.title,p?.name??'',i.responsible,i.discipline,i.issued,i.due_date,i.status,i.notes] })
+    const csv = [headers,...rows].map(r => r.map((c:any) => `"${(c??'').toString().replace(/"/g,'""')}"`).join(',')).join('\n')
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='chase-register.csv'; a.click()
     showToast('Exported')
   }
@@ -114,7 +122,7 @@ export default function Dashboard() {
         </div>
         <div className="register-card">
           <div className="register-header">
-            <div><span className="register-title">Register</span><span className="register-meta">— {filtered.length} items</span></div>
+            <div><span className="register-title">Register</span><span className="register-meta">— {filtered.length} item{filtered.length!==1?'s':''}</span></div>
             <div className="type-tabs">
               <button className={`type-tab ${activeType==='all'?'active':''}`} onClick={()=>{setActiveType('all');setActiveCard(null)}}>All</button>
               {REGISTER_TYPES.map(t => (
