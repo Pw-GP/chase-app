@@ -18,10 +18,10 @@ export default function Sidebar({ projects, itemCount, overdueCount, onAddProjec
   const path = usePathname()
   return (
     <aside className="sidebar">
-      <div className="sb-brand">
+      <Link href="/" className="sb-brand" style={{ textDecoration: 'none' }}>
         <div className="sb-mark"><IconLogo /></div>
         <div className="sb-name">Chase</div>
-      </div>
+      </Link>
       <div className="sb-group">
         <Link href="/app" className={`nav-item ${path==='/app'?'active':''}`}>
           <IconDashboard /> Dashboard
@@ -63,10 +63,12 @@ export default function Sidebar({ projects, itemCount, overdueCount, onAddProjec
         ))}
       </div>
       <div className="sb-footer">
-        <div className="avatar">{userInitials}</div>
-        <div style={{ flex:1, minWidth:0 }}>
-          <div className="user-name" style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{userName}</div>
-        </div>
+        <Link href="/app/settings" style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0, textDecoration:'none' }}>
+          <div className="avatar">{userInitials}</div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div className="user-name" style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{userName}</div>
+          </div>
+        </Link>
         <SignOutButton>
           <button style={{ fontSize:10, color:'var(--text3)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--f)' }}>Sign out</button>
         </SignOutButton>
