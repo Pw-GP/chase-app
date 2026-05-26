@@ -1,5 +1,5 @@
 'use client'
-import { STATUSES, CLOSED_STATUSES } from '@/types'
+import { STATUSES, CLOSED_STATUSES, REGISTER_TYPES, DISCIPLINES } from '@/types'
 import { StatusTag, TypePill, IconClose, IconSend, IconCopy, IconCheck, showToast } from './ui'
 import { useState } from 'react'
 
@@ -19,18 +19,31 @@ export default function DetailDrawer({ item, onClose, onUpdated }: Props) {
   const [notes, setNotes] = useState(item.notes || '')
   const [followUp, setFollowUp] = useState(item.follow_up || item.suggested_follow_up || '')
   const [genLoading, setGenLoading] = useState(false)
-  const ov = isOverdue(item)
+
+  // Editable fields
+  const [title, setTitle] = useState(item.title || '')
+  const [type, setType] = useState(item.type || 'ACT')
+  const [responsible, setResponsible] = useState(item.responsible || '')
+  const [company, setCompany] = useState(item.company || '')
+  const [discipline, setDiscipline] = useState(item.discipline || '')
+  const [dueDate, setDueDate] = useState(item.due_date || '')
+  const [actionRequired, setActionRequired] = useState(item.action_required || '')
+
+  const ov = isOverdue({ ...item, due_date: dueDate, status })
   const closed = CLOSED_STATUSES.includes(status)
-  const statuses = (STATUSES as any)[item.type] ?? []
+  const statuses = (STATUSES as any)[type] ?? []
 
   async function save() {
-    await fetch('/api/items', { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:item.id,status,notes}) })
+    await fetch('/api/items', {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ id:item.id, status, notes, title, type, responsible, company, discipline, due_date:dueDate, action_required:actionRequired })
+    })
     showToast('Saved'); onUpdated()
   }
 
   async function markClosed() {
     const map: Record<string,string> = {RFI:'Closed',APR:'Approved',SUB:'Closed',VAR:'Closed',EOT:'Accepted',DEF:'Closed',SI:'Closed',ACT:'Done'}
-    const ns = map[item.type] ?? 'Closed'
+    const ns = map[type] ?? 'Closed'
     await fetch('/api/items', { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:item.id,status:ns,notes}) })
     setStatus(ns); showToast('Marked '+ns); onUpdated()
   }
@@ -40,7 +53,7 @@ export default function DetailDrawer({ item, onClose, onUpdated }: Props) {
     try {
       const res = await fetch('/api/extract', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ emailText:`Generate a professional follow-up email for this overdue construction action.\n\nItem: ${item.number} — ${item.title}\nType: ${item.type}\nResponsible: ${item.responsible}\nDue: ${item.due_date}\nNotes: ${item.notes}\n\nReturn only a suggested_follow_up_email field in JSON.` })
+        body:JSON.stringify({ emailText:`Generate a professional follow-up email for this overdue construction action.\n\nItem: ${item.number} — ${title}\nType: ${type}\nResponsible: ${responsible}\nDue: ${dueDate}\nNotes: ${notes}\n\nReturn only a suggested_follow_up_email field in JSON.` })
       })
       const data = await res.json()
       const text = data.suggested_follow_up_email || 'Could not generate.'
@@ -57,25 +70,75 @@ export default function DetailDrawer({ item, onClose, onUpdated }: Props) {
         <div className="detail-top">
           <div style={{display:'flex',alignItems:'center',gap:7}}>
             <span className="item-number" style={{fontSize:10.5}}>{item.number}</span>
-            <TypePill type={item.type} />
+            <TypePill type={type} />
             {ov && <span className="status-tag st-overdue">Overdue</span>}
           </div>
           <button className="detail-close" onClick={onClose}><IconClose /></button>
         </div>
         <div className="detail-scroll">
-          <div>
-            <div className="detail-title">{item.title}</div>
-            <div className="detail-chips"><StatusTag status={status} overdue={ov} />{item.discipline&&<span style={{fontSize:10.5,color:'var(--text3)'}}>{item.discipline}</span>}</div>
+
+          {/* Title */}
+          <div style={{padding:'14px 16px',borderBottom:'1px solid var(--border)'}}>
+            <div style={{fontSize:9,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--text3)',marginBottom:6}}>Title</div>
+            <input
+              value={title}
+              onChange={e=>setTitle(e.target.value)}
+              style={{width:'100%',border:'none',background:'transparent',padding:0,fontFamily:'var(--f)',fontSize:14,fontWeight:700,color:'var(--text)',outline:'none'}}
+            />
           </div>
+
+          {/* Type + Status */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',borderBottom:'1px solid var(--border)'}}>
+            <div style={{padding:'11px 16px',borderRight:'1px solid var(--border)'}}>
+              <div style={{fontSize:9,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--text3)',marginBottom:6}}>Type</div>
+              <select className="form-select" value={type} onChange={e=>{setType(e.target.value);setStatus((STATUSES as any)[e.target.value]?.[0]??status)}}>
+                {REGISTER_TYPES.map((t:any)=><option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+            </div>
+            <div style={{padding:'11px 16px'}}>
+              <div style={{fontSize:9,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--text3)',marginBottom:6}}>Discipline</div>
+              <select className="form-select" value={discipline} onChange={e=>setDiscipline(e.target.value)}>
+                {(DISCIPLINES as string[]).map(d=><option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Responsible + Company */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',borderBottom:'1px solid var(--border)'}}>
+            <div style={{padding:'11px 16px',borderRight:'1px solid var(--border)'}}>
+              <div style={{fontSize:9,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--text3)',marginBottom:6}}>Responsible</div>
+              <input className="form-input" value={responsible} onChange={e=>setResponsible(e.target.value)} style={{width:'100%'}}/>
+            </div>
+            <div style={{padding:'11px 16px'}}>
+              <div style={{fontSize:9,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--text3)',marginBottom:6}}>Company</div>
+              <input className="form-input" value={company} onChange={e=>setCompany(e.target.value)} style={{width:'100%'}}/>
+            </div>
+          </div>
+
+          {/* Issued + Due date */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',borderBottom:'1px solid var(--border)'}}>
+            <div style={{padding:'11px 16px',borderRight:'1px solid var(--border)'}}>
+              <div style={{fontSize:9,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--text3)',marginBottom:6}}>Issued</div>
+              <div style={{fontSize:12,color:'var(--text2)'}}>{fmtDate(item.issued)}</div>
+            </div>
+            <div style={{padding:'11px 16px'}}>
+              <div style={{fontSize:9,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--text3)',marginBottom:6}}>Due date</div>
+              <input className="form-input" type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} style={{width:'100%'}}/>
+            </div>
+          </div>
+
+          {/* Action required */}
+          <div style={{borderBottom:'1px solid var(--border)'}}>
+            <div style={{fontSize:9,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--text3)',padding:'8px 12px',borderBottom:'1px solid var(--border)',background:'var(--bg)'}}>Action required</div>
+            <textarea className="detail-textarea" value={actionRequired} onChange={e=>setActionRequired(e.target.value)} placeholder="Describe the action required…" style={{minHeight:64}}/>
+          </div>
+
+          {/* Notes */}
           <div className="detail-block">
-            <div className="detail-row"><span className="detail-label">Responsibility</span><span className="detail-value">{item.responsible||'—'}</span></div>
-            {item.company&&<div className="detail-row"><span className="detail-label">Company</span><span className="detail-value">{item.company}</span></div>}
-            <div className="detail-row"><span className="detail-label">Issued</span><span className="detail-value">{fmtDate(item.issued)}</span></div>
-            <div className="detail-row"><span className="detail-label">Due date</span><span className={`detail-value ${ov?'due-over':''}`}>{fmtDate(item.due_date)}</span></div>
+            <textarea className="detail-textarea" value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Add notes…"/>
           </div>
-          {item.action_required&&<div className="detail-block"><div style={{fontSize:9,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--text3)',padding:'8px 12px',borderBottom:'1px solid var(--border)',background:'var(--bg)'}}>Action required</div><div className="detail-text">{item.action_required}</div></div>}
-          {item.email_text&&<details className="detail-block"><summary style={{padding:'9px 12px',fontSize:10,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--text3)',display:'flex',alignItems:'center',justifyContent:'space-between',listStyle:'none',background:'var(--bg)',cursor:'pointer'}}>Source email <span style={{fontSize:9,opacity:.6}}>▼ expand</span></summary><div className="detail-email">{item.email_text}</div></details>}
-          <div className="detail-block"><textarea className="detail-textarea" value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Add notes…"/></div>
+
+          {/* Follow-up */}
           {!closed&&<div>
             <button className="btn" onClick={generateFollowUp} disabled={genLoading} style={{fontSize:10.5,display:'flex',alignItems:'center',gap:5}}>
               {genLoading?<span className="spinner" style={{width:13,height:13}}/>:<IconSend/>} Generate follow-up email
@@ -83,6 +146,7 @@ export default function DetailDrawer({ item, onClose, onUpdated }: Props) {
             {followUp&&<div style={{marginTop:10}}><div className="follow-up-box">{followUp}</div><button className="btn" style={{marginTop:7,fontSize:10.5,display:'flex',alignItems:'center',gap:5}} onClick={()=>{navigator.clipboard.writeText(followUp);showToast('Copied')}}><IconCopy/> Copy</button></div>}
           </div>}
         </div>
+
         <div className="detail-actions">
           <select className="status-select" value={status} onChange={e=>setStatus(e.target.value)}>
             {statuses.map((s: string)=><option key={s} value={s}>{s}</option>)}
