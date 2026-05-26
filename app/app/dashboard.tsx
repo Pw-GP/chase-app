@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { RegisterType, REGISTER_TYPES, CLOSED_STATUSES } from '@/types'
+import { RegisterType, REGISTER_TYPES, CLOSED_STATUSES, STATUSES, DISCIPLINES } from '@/types'
 import { StatusTag, TypePill, IconDownload, IconPlus, IconSearch, showToast } from '@/components/ui'
 import DetailDrawer from '@/components/DetailDrawer'
 import Link from 'next/link'
@@ -24,6 +24,8 @@ function fmtDate(d: string) {
   try { return new Date(d+'T12:00:00').toLocaleDateString('en-AU',{day:'2-digit',month:'2-digit',year:'2-digit'}) } catch { return d }
 }
 
+const EMPTY_FORM = { title:'', type:'RFI', responsible:'', company:'', discipline:'Other', due_date:'', status:'Open', priority:'Medium', notes:'', project_id:'' }
+
 export default function Dashboard() {
   const searchParams = useSearchParams()
   const selProject = searchParams.get('project')
@@ -36,6 +38,11 @@ export default function Dashboard() {
   const [activeType, setActiveType] = useState<RegisterType|'all'>(urlType ?? 'all')
   const [detail, setDetail] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
+  // New item modal
+  const [showNew, setShowNew] = useState(false)
+  const [newForm, setNewForm] = useState<any>({...EMPTY_FORM})
+  const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
     const [ir, pr] = await Promise.all([fetch('/api/items'), fetch('/api/projects')])
@@ -50,10 +57,44 @@ export default function Dashboard() {
     return () => window.removeEventListener('chase:refresh', load)
   }, [load])
 
-  // Update activeType when URL param changes
-  useEffect(() => {
-    setActiveType(urlType ?? 'all')
-  }, [urlType])
+  useEffect(() => { setActiveType(urlType ?? 'all') }, [urlType])
+
+  function openNew() {
+    setNewForm({ ...EMPTY_FORM, project_id: selProject || projects[0]?.id || '' })
+    setShowNew(true)
+  }
+
+  function updNew(k: string, v: any) { setNewForm((p: any) => ({ ...p, [k]: v })) }
+
+  async function saveNew() {
+    if (!newForm.title?.trim()) { showToast('Please enter a title'); return }
+    setSaving(true)
+    const type = newForm.type || 'RFI'
+    const allItems = items
+    const nums = allItems.filter((i: any)=>i.type===type).map((i: any)=>{const m=i.number.match(/(\d+)$/);return m?parseInt(m[1]):0})
+    const next = nums.length ? Math.max(...nums)+1 : 1
+    const number = `${type}-${String(next).padStart(2,'0')}`
+    const body = {
+      number, type,
+      project_id: newForm.project_id || projects[0]?.id,
+      title: newForm.title,
+      responsible: newForm.responsible,
+      company: newForm.company,
+      discipline: newForm.discipline || 'Other',
+      issued: new Date().toISOString().split('T')[0],
+      due_date: newForm.due_date || null,
+      status: newForm.status || 'Open',
+      priority: newForm.priority || 'Medium',
+      notes: newForm.notes || '',
+      action_required: newForm.action_required || '',
+    }
+    const res = await fetch('/api/items', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+    if (!res.ok) { showToast('Error saving'); setSaving(false); return }
+    showToast(`${number} saved`)
+    setShowNew(false)
+    load()
+    setSaving(false)
+  }
 
   const scoped = selProject ? items.filter(i => i.project_id === selProject) : items
   const openCount    = scoped.filter(i => !isClosed(i) && !isOverdue(i) && !isAwaiting(i)).length
@@ -94,10 +135,95 @@ export default function Dashboard() {
     { key:null,      label:'Total',             val:scoped.length,cls:'',        sub:'all items' },
   ]
 
+  const newStatuses = (STATUSES as any)[newForm.type] ?? ['Open']
+
   if (loading) return <div style={{padding:40,color:'var(--text3)'}}>Loading…</div>
 
   return (
     <>
+      {/* New Item Modal */}
+      {showNew && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--rl)',width:560,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 8px 32px rgba(0,0,0,.16)'}}>
+            <div style={{padding:'20px 24px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div>
+                <div style={{fontSize:15,fontWeight:700,color:'var(--text)'}}>New item</div>
+                <div style={{fontSize:12,color:'var(--text3)'}}>Add a new action, RFI or follow-up item</div>
+              </div>
+              <button onClick={()=>setShowNew(false)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,color:'var(--text3)'}}>×</button>
+            </div>
+            <div style={{padding:'0'}}>
+              {/* Title */}
+              <div style={{padding:'14px 24px',borderBottom:'1px solid var(--border)'}}>
+                <div className="form-label">Title</div>
+                <input className="form-input" style={{width:'100%'}} placeholder="e.g. Awaiting hydraulic engineer response" value={newForm.title} onChange={e=>updNew('title',e.target.value)} autoFocus/>
+              </div>
+              {/* Type + Status */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',borderBottom:'1px solid var(--border)'}}>
+                <div style={{padding:'12px 24px',borderRight:'1px solid var(--border)'}}>
+                  <div className="form-label">Type</div>
+                  <select className="form-select" value={newForm.type} onChange={e=>{updNew('type',e.target.value);updNew('status',(STATUSES as any)[e.target.value]?.[0]??'Open')}}>
+                    {REGISTER_TYPES.map((t:any)=><option key={t.id} value={t.id}>{t.label}</option>)}
+                  </select>
+                </div>
+                <div style={{padding:'12px 24px'}}>
+                  <div className="form-label">Status</div>
+                  <select className="form-select" value={newForm.status} onChange={e=>updNew('status',e.target.value)}>
+                    {newStatuses.map((s:string)=><option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+              {/* Responsible + Company */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',borderBottom:'1px solid var(--border)'}}>
+                <div style={{padding:'12px 24px',borderRight:'1px solid var(--border)'}}>
+                  <div className="form-label">Responsible party</div>
+                  <input className="form-input" style={{width:'100%'}} placeholder="Name" value={newForm.responsible} onChange={e=>updNew('responsible',e.target.value)}/>
+                </div>
+                <div style={{padding:'12px 24px'}}>
+                  <div className="form-label">Company</div>
+                  <input className="form-input" style={{width:'100%'}} placeholder="Company" value={newForm.company} onChange={e=>updNew('company',e.target.value)}/>
+                </div>
+              </div>
+              {/* Due date + Discipline */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',borderBottom:'1px solid var(--border)'}}>
+                <div style={{padding:'12px 24px',borderRight:'1px solid var(--border)'}}>
+                  <div className="form-label">Due date</div>
+                  <input className="form-input" type="date" style={{width:'100%'}} value={newForm.due_date} onChange={e=>updNew('due_date',e.target.value)}/>
+                </div>
+                <div style={{padding:'12px 24px'}}>
+                  <div className="form-label">Discipline</div>
+                  <select className="form-select" value={newForm.discipline} onChange={e=>updNew('discipline',e.target.value)}>
+                    {(DISCIPLINES as string[]).map(d=><option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+              {/* Project */}
+              <div style={{padding:'12px 24px',borderBottom:'1px solid var(--border)'}}>
+                <div className="form-label">Project</div>
+                <select className="form-select" value={newForm.project_id} onChange={e=>updNew('project_id',e.target.value)}>
+                  {projects.map((p:any)=><option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+              {/* Action required */}
+              <div style={{padding:'12px 24px',borderBottom:'1px solid var(--border)'}}>
+                <div className="form-label">Action required</div>
+                <textarea className="form-textarea" style={{minHeight:72,width:'100%'}} placeholder="Describe the action required…" value={newForm.action_required||''} onChange={e=>updNew('action_required',e.target.value)}/>
+              </div>
+              {/* Notes */}
+              <div style={{padding:'12px 24px',borderBottom:'1px solid var(--border)'}}>
+                <div className="form-label">Notes</div>
+                <textarea className="form-textarea" style={{minHeight:52,width:'100%'}} placeholder="Optional notes…" value={newForm.notes} onChange={e=>updNew('notes',e.target.value)}/>
+              </div>
+            </div>
+            <div style={{padding:'16px 24px',display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button className="btn" onClick={()=>setShowNew(false)}>Cancel</button>
+              <Link href="/app/paste-email" className="btn" style={{textDecoration:'none'}}>Paste email instead</Link>
+              <button className="btn btn-primary" onClick={saveNew} disabled={saving}>{saving?'Saving…':'Save to register'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="topbar">
         <div>
           <div className="topbar-title">{proj ? proj.name : 'Dashboard'}</div>
@@ -105,7 +231,7 @@ export default function Dashboard() {
         </div>
         <div className="topbar-actions">
           <button className="btn" onClick={exportCSV}><IconDownload /> Export</button>
-          <Link href="/app/paste-email" className="btn btn-primary"><IconPlus /> New</Link>
+          <button className="btn btn-primary" onClick={openNew}><IconPlus /> New</button>
         </div>
       </div>
       <div className="page-content">
