@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { REGISTER_TYPES, STATUSES, DISCIPLINES } from '@/types'
 import { IconMail, showToast } from '@/components/ui'
 import { useRouter } from 'next/navigation'
@@ -20,6 +20,8 @@ Regards,
 Dave Singh
 Site Manager — BuildCorp`
 
+const PROJECT_COLORS = ['#2a4fa8','#2e6645','#a83232','#8a5e00','#5c3070','#1a6b6b']
+
 export default function PasteEmailInner() {
   const router = useRouter()
   const [emailText, setEmailText] = useState('')
@@ -29,9 +31,55 @@ export default function PasteEmailInner() {
   const [projects, setProjects] = useState<any[]>([])
   const [form, setForm] = useState<any>({})
 
-  useEffect(() => { fetch('/api/projects').then(r=>r.json()).then(setProjects) }, [])
+  // Project inline creation
+  const [projectSearch, setProjectSearch] = useState('')
+  const [showProjectDrop, setShowProjectDrop] = useState(false)
+  const [creatingProject, setCreatingProject] = useState(false)
+  const projectRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    fetch('/api/projects').then(r=>r.json()).then((data) => {
+      setProjects(data)
+    })
+  }, [])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (projectRef.current && !projectRef.current.contains(e.target as Node)) {
+        setShowProjectDrop(false)
+      }
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [])
 
   function upd(k: string, v: any) { setForm((prev: any) => ({ ...prev, [k]: v })) }
+
+  const selectedProject = projects.find(p => p.id === form.project_id)
+  const filteredProjects = projects.filter(p => p.name.toLowerCase().includes(projectSearch.toLowerCase()))
+
+  async function createAndSelectProject(name: string) {
+    if (!name.trim()) return
+    setCreatingProject(true)
+    const color = PROJECT_COLORS[projects.length % PROJECT_COLORS.length]
+    const res = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name.trim(), color })
+    })
+    if (res.ok) {
+      const newProject = await res.json()
+      setProjects(prev => [...prev, newProject])
+      upd('project_id', newProject.id)
+      setProjectSearch('')
+      setShowProjectDrop(false)
+      showToast(`Project "${name.trim()}" created`)
+    } else {
+      showToast('Error creating project')
+    }
+    setCreatingProject(false)
+  }
 
   async function extract() {
     if (!emailText.trim()) { showToast('Paste an email first'); return }
@@ -135,9 +183,65 @@ export default function PasteEmailInner() {
                   </div>
                   <div style={{padding:'11px 16px',borderBottom:'1px solid var(--border)'}}>
                     <div className="form-label">Project</div>
-                    <select className="form-select" value={form.project_id??''} onChange={e=>upd('project_id',e.target.value)}>
-                      {projects.map((p: any)=><option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
+                    <div ref={projectRef} style={{position:'relative'}}>
+                      <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                        <div
+                          onClick={()=>setShowProjectDrop(v=>!v)}
+                          style={{flex:1,cursor:'pointer',padding:'4px 8px',borderRadius:'var(--r)',border:'1px solid var(--border)',background:'var(--bg)',fontSize:12,color:selectedProject?'var(--text)':'var(--text3)',minHeight:28,display:'flex',alignItems:'center'}}
+                        >
+                          {selectedProject ? (
+                            <span style={{display:'flex',alignItems:'center',gap:5}}>
+                              <span style={{width:7,height:7,borderRadius:'50%',background:selectedProject.color,display:'inline-block'}}/>
+                              {selectedProject.name}
+                            </span>
+                          ) : 'Select or create project'}
+                        </div>
+                        <button
+                          onClick={()=>{setShowProjectDrop(true);setTimeout(()=>document.getElementById('proj-search')?.focus(),50)}}
+                          style={{width:24,height:24,borderRadius:'var(--r)',border:'1px solid var(--border)',background:'var(--bg)',cursor:'pointer',fontSize:14,color:'var(--text3)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}
+                          title="Add new project"
+                        >+</button>
+                      </div>
+                      {showProjectDrop && (
+                        <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--rl)',boxShadow:'0 4px 16px rgba(0,0,0,.08)',zIndex:100}}>
+                          <div style={{padding:'6px 8px',borderBottom:'1px solid var(--border)'}}>
+                            <input
+                              id="proj-search"
+                              autoFocus
+                              placeholder="Search or type new project name…"
+                              value={projectSearch}
+                              onChange={e=>setProjectSearch(e.target.value)}
+                              onKeyDown={e=>{ if(e.key==='Enter' && projectSearch.trim() && filteredProjects.length===0) createAndSelectProject(projectSearch) }}
+                              style={{width:'100%',border:'none',background:'transparent',outline:'none',fontSize:12,fontFamily:'var(--f)',color:'var(--text)'}}
+                            />
+                          </div>
+                          <div style={{maxHeight:160,overflowY:'auto'}}>
+                            {filteredProjects.map(p=>(
+                              <div key={p.id} onClick={()=>{upd('project_id',p.id);setShowProjectDrop(false);setProjectSearch('')}} style={{padding:'7px 12px',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',gap:6,color:'var(--text)'}}
+                                onMouseEnter={e=>(e.currentTarget.style.background='var(--bg)')}
+                                onMouseLeave={e=>(e.currentTarget.style.background='transparent')}
+                              >
+                                <span style={{width:7,height:7,borderRadius:'50%',background:p.color,display:'inline-block',flexShrink:0}}/>
+                                {p.name}
+                              </div>
+                            ))}
+                            {projectSearch.trim() && !filteredProjects.find(p=>p.name.toLowerCase()===projectSearch.toLowerCase()) && (
+                              <div
+                                onClick={()=>createAndSelectProject(projectSearch)}
+                                style={{padding:'7px 12px',cursor:'pointer',fontSize:12,color:'var(--harbour)',display:'flex',alignItems:'center',gap:6,borderTop: filteredProjects.length?'1px solid var(--border)':'none'}}
+                                onMouseEnter={e=>(e.currentTarget.style.background='var(--bg)')}
+                                onMouseLeave={e=>(e.currentTarget.style.background='transparent')}
+                              >
+                                {creatingProject ? 'Creating…' : `+ Create "${projectSearch.trim()}"`}
+                              </div>
+                            )}
+                            {filteredProjects.length===0 && !projectSearch.trim() && (
+                              <div style={{padding:'10px 12px',fontSize:12,color:'var(--text3)'}}>No projects yet — type a name to create one</div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div style={{padding:'11px 16px',borderBottom:'1px solid var(--border)'}}>
