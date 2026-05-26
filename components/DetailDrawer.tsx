@@ -17,7 +17,7 @@ interface Props { item: any; onClose: () => void; onUpdated: () => void }
 export default function DetailDrawer({ item, onClose, onUpdated }: Props) {
   const [status, setStatus] = useState(item.status)
   const [notes, setNotes] = useState(item.notes || '')
-  const [followUp, setFollowUp] = useState(item.follow_up || item.suggested_follow_up || '')
+  const [followUp, setFollowUp] = useState('')
   const [genLoading, setGenLoading] = useState(false)
 
   // Editable fields
@@ -49,7 +49,7 @@ export default function DetailDrawer({ item, onClose, onUpdated }: Props) {
   }
 
   async function generateFollowUp() {
-    setGenLoading(true)
+    setGenLoading(true); setFollowUp('')
     try {
       const res = await fetch('/api/extract', {
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -87,7 +87,7 @@ export default function DetailDrawer({ item, onClose, onUpdated }: Props) {
             />
           </div>
 
-          {/* Type + Status */}
+          {/* Type + Discipline */}
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',borderBottom:'1px solid var(--border)'}}>
             <div style={{padding:'11px 16px',borderRight:'1px solid var(--border)'}}>
               <div style={{fontSize:9,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--text3)',marginBottom:6}}>Type</div>
@@ -127,18 +127,18 @@ export default function DetailDrawer({ item, onClose, onUpdated }: Props) {
             </div>
           </div>
 
-          {/* Action required */}
+          {/* Action required - expanded */}
           <div style={{borderBottom:'1px solid var(--border)'}}>
             <div style={{fontSize:9,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--text3)',padding:'8px 12px',borderBottom:'1px solid var(--border)',background:'var(--bg)'}}>Action required</div>
-            <textarea className="detail-textarea" value={actionRequired} onChange={e=>setActionRequired(e.target.value)} placeholder="Describe the action required…" style={{minHeight:64}}/>
+            <textarea className="detail-textarea" value={actionRequired} onChange={e=>setActionRequired(e.target.value)} placeholder="Describe the action required…" style={{minHeight:120,resize:'vertical'}}/>
           </div>
 
           {/* Notes */}
           <div className="detail-block">
-            <textarea className="detail-textarea" value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Add notes…"/>
+            <textarea className="detail-textarea" value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Add notes…" style={{minHeight:72}}/>
           </div>
 
-          {/* Follow-up */}
+          {/* Follow-up — only show generated result, not pre-filled */}
           {!closed&&<div>
             <button className="btn" onClick={generateFollowUp} disabled={genLoading} style={{fontSize:10.5,display:'flex',alignItems:'center',gap:5}}>
               {genLoading?<span className="spinner" style={{width:13,height:13}}/>:<IconSend/>} Generate follow-up email
