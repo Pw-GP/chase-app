@@ -30,19 +30,20 @@ const PILL_COL: Record<string,string> = { RFI:'#1a3270', APR:'#1a4a33', VAR:'#5c
 function useTilt(ref: React.RefObject<HTMLDivElement>) {
   useEffect(() => {
     const el = ref.current; if (!el) return
+    const element = el
     function onMove(e: MouseEvent) {
-      const r = el.getBoundingClientRect()
+      const r = element.getBoundingClientRect()
       const x = (e.clientX - r.left) / r.width - 0.5
       const y = (e.clientY - r.top) / r.height - 0.5
-      el.style.transform = `perspective(700px) rotateY(${x*8}deg) rotateX(${-y*8}deg) translateY(-3px)`
-      el.style.boxShadow = `${-x*12}px ${-y*12}px 32px rgba(42,79,168,0.10), 0 4px 20px rgba(41,52,58,0.08)`
+      element.style.transform = `perspective(700px) rotateY(${x*8}deg) rotateX(${-y*8}deg) translateY(-3px)`
+      element.style.boxShadow = `${-x*12}px ${-y*12}px 32px rgba(42,79,168,0.10), 0 4px 20px rgba(41,52,58,0.08)`
     }
     function onLeave() {
-      el.style.transform = ''; el.style.boxShadow = ''
+      element.style.transform = ''; element.style.boxShadow = ''
     }
-    el.addEventListener('mousemove', onMove)
-    el.addEventListener('mouseleave', onLeave)
-    return () => { el.removeEventListener('mousemove', onMove); el.removeEventListener('mouseleave', onLeave) }
+    element.addEventListener('mousemove', onMove)
+    element.addEventListener('mouseleave', onLeave)
+    return () => { element.removeEventListener('mousemove', onMove); element.removeEventListener('mouseleave', onLeave) }
   }, [ref])
 }
 
@@ -286,4 +287,3 @@ export default function LandingPage() {
     </div>
   )
 }
-
