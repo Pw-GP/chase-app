@@ -2,8 +2,6 @@
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
 
-const ROLES = ['Architects','Contractors','Project managers','Engineers','Consultants','Client-side PMs']
-
 const HOW_STEPS = [
   { n:'01', title:'Paste email', desc:'Paste a consultant, contractor or project email chain into Chase.' },
   { n:'02', title:'AI extracts actions', desc:'Chase identifies actions, approvals, RFIs, due dates and responsible parties automatically.' },
@@ -24,8 +22,8 @@ const MOCK_ITEMS = [
   { num:'ACT-01', type:'ACT', title:'Fire consultant review outstanding', resp:'FireSafe Eng.', due:'26/05/26', ov:false, status:'Open' },
 ]
 
-const PILL_BG: Record<string,string> = { RFI:'#edf1fc', APR:'#eaf3ee', VAR:'#f8f1e4', DEF:'#f8eded', ACT:'#f0f0ee' }
-const PILL_COL: Record<string,string> = { RFI:'#1a3270', APR:'#1a4a33', VAR:'#5c3e00', DEF:'#6e1f1f', ACT:'#29343a' }
+const PILL_BG: Record<string,string> = { RFI:'rgba(26,50,112,0.08)', APR:'rgba(26,122,64,0.10)', VAR:'rgba(153,102,0,0.10)', DEF:'rgba(196,32,32,0.10)', ACT:'rgba(26,20,16,0.07)' }
+const PILL_COL: Record<string,string> = { RFI:'#1a3270', APR:'#1a4a33', VAR:'#5c3e00', DEF:'#6e1f1f', ACT:'#555' }
 
 function useTilt(ref: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
@@ -35,12 +33,10 @@ function useTilt(ref: React.RefObject<HTMLDivElement | null>) {
       const r = element.getBoundingClientRect()
       const x = (e.clientX - r.left) / r.width - 0.5
       const y = (e.clientY - r.top) / r.height - 0.5
-      element.style.transform = `perspective(700px) rotateY(${x*8}deg) rotateX(${-y*8}deg) translateY(-3px)`
-      element.style.boxShadow = `${-x*12}px ${-y*12}px 32px rgba(42,79,168,0.10), 0 4px 20px rgba(41,52,58,0.08)`
+      element.style.transform = `perspective(700px) rotateY(${x*4}deg) rotateX(${-y*4}deg) translateY(-2px)`
+      element.style.boxShadow = `${-x*8}px ${-y*8}px 24px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.05)`
     }
-    function onLeave() {
-      element.style.transform = ''; element.style.boxShadow = ''
-    }
+    function onLeave() { element.style.transform = ''; element.style.boxShadow = '' }
     element.addEventListener('mousemove', onMove)
     element.addEventListener('mouseleave', onLeave)
     return () => { element.removeEventListener('mousemove', onMove); element.removeEventListener('mouseleave', onLeave) }
@@ -53,172 +49,26 @@ function TiltCard({ children, className, style }: { children: React.ReactNode, c
   return <div ref={ref} className={className} style={{ ...style, transition:'transform 0.18s ease, box-shadow 0.18s ease' }}>{children}</div>
 }
 
-function SunsetCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    const el = canvasRef.current
-    if (!el) return
-    const ctx = el.getContext('2d')
-    if (!ctx) return
-
-    let raf = 0
-    let offset = 0
-
-    function resize() {
-      if (!canvasRef.current) return
-      canvasRef.current.width = canvasRef.current.offsetWidth
-      canvasRef.current.height = canvasRef.current.offsetHeight
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    function draw() {
-      const c = canvasRef.current
-      if (!c || !ctx) return
-      const W = c.width, H = c.height
-      ctx.clearRect(0, 0, W, H)
-
-      const ox = W * 0.5
-      const oy = H * 0.82
-      const ringCount = 18
-      const baseSpacing = Math.max(W, H) * 0.072
-
-      for (let i = 0; i < ringCount; i++) {
-        const t = ((i / ringCount) + offset) % 1
-        const r = t * ringCount * baseSpacing
-        if (r < 1) continue
-        const alpha = Math.sin(t * Math.PI) * 0.55
-        const lineW = (1 - t) * 2.2 + 0.4
-
-        ctx.beginPath()
-        ctx.arc(ox, oy, r, Math.PI, 2 * Math.PI)
-
-        const grad = ctx.createRadialGradient(ox, oy, r * 0.3, ox, oy, r)
-        grad.addColorStop(0, `rgba(255,100,0,${(alpha * 0.9).toFixed(3)})`)
-        grad.addColorStop(0.5, `rgba(255,60,0,${alpha.toFixed(3)})`)
-        grad.addColorStop(1, `rgba(180,20,0,${(alpha * 0.3).toFixed(3)})`)
-
-        ctx.strokeStyle = grad
-        ctx.lineWidth = lineW
-        ctx.stroke()
-      }
-
-      const glow = ctx.createRadialGradient(ox, oy, 0, ox, oy, W * 0.45)
-      glow.addColorStop(0, 'rgba(255,120,0,0.22)')
-      glow.addColorStop(0.3, 'rgba(255,60,0,0.10)')
-      glow.addColorStop(1, 'rgba(0,0,0,0)')
-      ctx.fillStyle = glow
-      ctx.fillRect(0, 0, W, H)
-
-      const spot = ctx.createRadialGradient(ox, oy, 0, ox, oy, W * 0.08)
-      spot.addColorStop(0, 'rgba(255,200,100,0.55)')
-      spot.addColorStop(0.4, 'rgba(255,80,0,0.22)')
-      spot.addColorStop(1, 'rgba(0,0,0,0)')
-      ctx.fillStyle = spot
-      ctx.fillRect(0, 0, W, H)
-
-      offset = (offset + 0.0018) % 1
-      raf = requestAnimationFrame(draw)
-    }
-
-    draw()
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize) }
-  }, [])
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: 'absolute', inset: 0, width: '100%', height: '100%',
-        pointerEvents: 'none', zIndex: 0,
-      }}
-    />
-  )
-}
-
 export default function LandingPage() {
-  const cursorDot = useRef<HTMLDivElement>(null)
-  const cursorRing = useRef<HTMLDivElement>(null)
-  const mouse = useRef({ x: 0, y: 0 })
-  const ring = useRef({ x: 0, y: 0 })
-
-  useEffect(() => {
-    function onMove(e: MouseEvent) {
-      mouse.current = { x: e.clientX, y: e.clientY }
-      if (cursorDot.current) {
-        cursorDot.current.style.left = e.clientX + 'px'
-        cursorDot.current.style.top = e.clientY + 'px'
-        cursorDot.current.style.opacity = '1'
-      }
-    }
-    window.addEventListener('mousemove', onMove)
-
-    let raf: number
-    function animate() {
-      ring.current.x += (mouse.current.x - ring.current.x) * 0.1
-      ring.current.y += (mouse.current.y - ring.current.y) * 0.1
-      if (cursorRing.current) {
-        cursorRing.current.style.left = ring.current.x + 'px'
-        cursorRing.current.style.top = ring.current.y + 'px'
-      }
-      raf = requestAnimationFrame(animate)
-    }
-    animate()
-    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(raf) }
-  }, [])
-
   return (
-    <div className="landing" style={{ cursor:'none' }}>
-
-      {/* Animated sunset canvas */}
-      <SunsetCanvas />
-
-      {/* Custom cursor */}
-      <div ref={cursorDot} style={{
-        position:'fixed', pointerEvents:'none', zIndex:9999,
-        width:8, height:8, borderRadius:'50%',
-        background:'#ffffff',
-        transform:'translate(-50%,-50%)',
-        opacity:0, transition:'opacity 0.3s',
-      }}/>
-      <div ref={cursorRing} style={{
-        position:'fixed', pointerEvents:'none', zIndex:9998,
-        width:32, height:32, borderRadius:'50%',
-        border:'1.5px solid rgba(255,255,255,0.45)',
-        transform:'translate(-50%,-50%)',
-        background:'rgba(255,100,0,0.06)',
-      }}/>
-
+    <div className="landing">
       <style>{`
-        .landing * { cursor: none !important; }
-        @keyframes floatA { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-        @keyframes floatB { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-        @keyframes floatC { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-        @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes scrollLeft {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes floatA { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+        @keyframes floatB { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+        @keyframes floatC { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        .fade-up-1 { animation: fadeUp 0.65s ease 0.05s both; }
+        .fade-up-2 { animation: fadeUp 0.65s ease 0.18s both; }
+        .fade-up-3 { animation: fadeUp 0.65s ease 0.32s both; }
+        .fade-up-4 { animation: fadeUp 0.65s ease 0.44s both; }
         .float-a { animation: floatA 4s ease-in-out infinite; }
         .float-b { animation: floatB 5s ease-in-out infinite 0.8s; }
         .float-c { animation: floatC 4.5s ease-in-out infinite 1.5s; }
-        .fade-up-1 { animation: fadeUp 0.7s ease 0.1s both; }
-        .fade-up-2 { animation: fadeUp 0.7s ease 0.25s both; }
-        .fade-up-3 { animation: fadeUp 0.7s ease 0.4s both; }
-        .role-pill { transition: background 0.15s, border-color 0.15s, color 0.15s; }
-        .role-pill:hover { background:#edf1fc; border-color:#2a4fa8; color:#1a3270; }
         .pricing-card { transition: transform 0.18s, box-shadow 0.18s; }
-        .pricing-card:hover { transform: translateY(-5px); box-shadow: 0 10px 32px rgba(42,79,168,0.10); }
-        .mock-kpi { transition: transform 0.15s, box-shadow 0.15s; }
-        .mock-kpi:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(41,52,58,0.10); }
-        .landing-btn { transition: opacity 0.15s, background 0.15s, transform 0.15s; }
-        .landing-btn:hover { transform: translateY(-1px); }
-        .roles-scroll-wrap { overflow: hidden; position: relative; }
-        .roles-scroll { display: flex; gap: 8px; width: max-content; animation: scrollLeft 22s linear infinite; }
-        .roles-scroll:hover { animation-play-state: paused; }
+        .pricing-card:hover { transform: translateY(-4px); box-shadow: 0 8px 28px rgba(0,0,0,.08); }
       `}</style>
 
+      {/* Nav */}
       <nav className="landing-nav">
         <Link href="/" className="landing-logo-wrap">
           <div className="sb-mark">
@@ -228,23 +78,25 @@ export default function LandingPage() {
           </div>
           <span className="landing-wordmark">Chase</span>
         </Link>
-        <div style={{ display:'flex', gap:24, alignItems:'center' }}>
-          <span style={{ fontSize:11, fontWeight:600, letterSpacing:'.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.45)' }}>For construction teams</span>
-          <Link href="/app" style={{ fontSize:11, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.65)', textDecoration:'none' }}>Log in</Link>
-          <Link href="/app" className="landing-btn landing-btn-primary" style={{ padding:'9px 22px', fontSize:11, gap:6 }}>
+        <div style={{ display:'flex', gap:28, alignItems:'center' }}>
+          <span style={{ fontSize:11, fontWeight:600, letterSpacing:'.08em', color:'rgba(26,20,16,0.45)' }}>For construction teams</span>
+          <Link href="/app" style={{ fontSize:12, fontWeight:600, color:'rgba(26,20,16,0.65)', textDecoration:'none' }}>Log in</Link>
+          <Link href="/app" className="landing-btn landing-btn-primary" style={{ padding:'9px 22px', fontSize:12 }}>
             Get started free
             <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </Link>
         </div>
       </nav>
 
+      {/* Hero */}
       <div className="landing-hero">
         <div className="landing-eyebrow fade-up-1">Construction communication, simplified</div>
         <h1 className="landing-h1 fade-up-2">
-          Every action.<br/>Every follow-up.<br/><em>Nothing missed.</em>
+          Every action.<br/>Every follow-up.
         </h1>
+        <div className="landing-sub-orange fade-up-2">Nothing missed.</div>
         <p className="landing-sub fade-up-3">Paste a project email and Chase automatically extracts actions, approvals, RFIs and follow-ups into one clean dashboard.</p>
-        <div className="landing-actions fade-up-3">
+        <div className="landing-actions fade-up-4">
           <Link href="/app" className="landing-btn landing-btn-primary">
             Start for free
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -254,9 +106,10 @@ export default function LandingPage() {
             See a demo
           </Link>
         </div>
-        <div className="landing-note fade-up-3">No credit card &nbsp;·&nbsp; 5-minute setup &nbsp;·&nbsp; Works with any email client</div>
+        <div className="landing-note fade-up-4">No credit card &nbsp;·&nbsp; 5-minute setup &nbsp;·&nbsp; Works with any email client</div>
       </div>
 
+      {/* How it works */}
       <div className="how-section">
         <div className="how-title-wrap">
           <div className="section-eyebrow">Workflow</div>
@@ -267,7 +120,7 @@ export default function LandingPage() {
             <TiltCard key={step.n} className={`how-card float-${['a','b','c'][i]}`}>
               <div className="how-card-top">
                 <div className="how-icon">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     {i === 0 && <><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 4 10 9 10-9"/></>}
                     {i === 1 && <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>}
                     {i === 2 && <><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>}
@@ -277,14 +130,14 @@ export default function LandingPage() {
               </div>
               <div className="how-card-title">{step.title}</div>
               <div className="how-card-desc">{step.desc}</div>
-              {i < 2 && <div className="how-arrow">→</div>}
             </TiltCard>
           ))}
         </div>
       </div>
 
+      {/* Mock dashboard */}
       <div className="mock-section">
-        <div className="how-title-wrap" style={{ marginBottom:28 }}>
+        <div className="how-title-wrap" style={{ marginBottom:32 }}>
           <div className="section-eyebrow">Dashboard</div>
           <div className="section-title">Everything in one place</div>
         </div>
@@ -303,11 +156,6 @@ export default function LandingPage() {
               {['⊞ Dashboard','✉ Paste email','◫ Projects'].map((item, i) => (
                 <div key={item} className={`mock-nav-item ${i===0?'active':'inactive'}`}>{item}</div>
               ))}
-              <div className="mock-nav-label" style={{ marginTop:12 }}>Projects</div>
-              <div className="mock-nav-item inactive">
-                <div style={{ width:5,height:5,borderRadius:'50%',background:'#2a4fa8',marginRight:4,display:'inline-block' }} />
-                300 Collins St
-              </div>
             </div>
             <div className="mock-main">
               <div className="mock-topbar">
@@ -319,16 +167,16 @@ export default function LandingPage() {
               </div>
               <div className="mock-kpis">
                 {[
-                  {l:'Open', v:'6', c:'#2a4fa8', sub:'active'},
-                  {l:'Overdue', v:'2', c:'#a83232', sub:'past due'},
-                  {l:'Awaiting', v:'4', c:'#8a5e00', sub:'no reply'},
-                  {l:'Closed', v:'8', c:'#2e6645', sub:'resolved'},
-                  {l:'Total', v:'20', c:'#29343a', sub:'all items'},
+                  {l:'Open', v:'6', c:'#c04e01', sub:'active'},
+                  {l:'Overdue', v:'2', c:'#c42020', sub:'past due'},
+                  {l:'Awaiting', v:'4', c:'#996600', sub:'no reply'},
+                  {l:'Closed', v:'8', c:'#1a7a40', sub:'resolved'},
+                  {l:'Total', v:'20', c:'#1a1410', sub:'all items'},
                 ].map(k => (
                   <div key={k.l} className="mock-kpi" style={{ borderBottom:`2px solid ${k.c}` }}>
-                    <div className="mock-kpi-label" style={{ color:'#a89f92' }}>{k.l}</div>
+                    <div className="mock-kpi-label">{k.l}</div>
                     <div className="mock-kpi-val" style={{ color:k.c }}>{k.v}</div>
-                    <div className="mock-kpi-sub" style={{ color:'#a89f92' }}>{k.sub}</div>
+                    <div className="mock-kpi-sub">{k.sub}</div>
                   </div>
                 ))}
               </div>
@@ -338,13 +186,13 @@ export default function LandingPage() {
                 </thead>
                 <tbody>
                   {MOCK_ITEMS.map(item => (
-                    <tr key={item.num} style={{ background:item.ov?'rgba(168,50,50,.025)':undefined }}>
-                      <td><span style={{ fontFamily:'monospace',fontSize:10,color:'#a89f92' }}>{item.num}</span></td>
-                      <td><span style={{ background:PILL_BG[item.type]||'#f0f0ee',color:PILL_COL[item.type]||'#29343a',padding:'1px 6px',borderRadius:3,fontSize:9.5,fontWeight:600 }}>{item.type}</span></td>
-                      <td style={{ fontWeight:600,color:'#29343a',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{item.title}</td>
-                      <td style={{ color:'#61706b' }}>{item.resp}</td>
-                      <td style={{ color:item.ov?'#a83232':'#a89f92',fontWeight:item.ov?600:400 }}>{item.due}</td>
-                      <td style={{ textAlign:'right' }}><span style={{ background:item.ov?'#f8eded':'#f8f1e4',color:item.ov?'#6e1f1f':'#5c3e00',padding:'2px 8px',borderRadius:10,fontSize:9.5,fontWeight:600 }}>{item.ov?'Overdue':item.status}</span></td>
+                    <tr key={item.num}>
+                      <td><span style={{ fontFamily:'monospace',fontSize:10,color:'#999' }}>{item.num}</span></td>
+                      <td><span style={{ background:PILL_BG[item.type]||'rgba(26,20,16,0.07)',color:PILL_COL[item.type]||'#555',padding:'1px 6px',borderRadius:3,fontSize:9.5,fontWeight:700 }}>{item.type}</span></td>
+                      <td style={{ fontWeight:600,color:'#1a1410',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{item.title}</td>
+                      <td style={{ color:'rgba(26,20,16,0.55)' }}>{item.resp}</td>
+                      <td style={{ color:item.ov?'#c42020':'rgba(26,20,16,0.45)',fontWeight:item.ov?600:400 }}>{item.due}</td>
+                      <td style={{ textAlign:'right' }}><span style={{ background:item.ov?'rgba(196,32,32,0.10)':'rgba(153,102,0,0.10)',color:item.ov?'#6e1f1f':'#5c3e00',padding:'2px 8px',borderRadius:10,fontSize:9.5,fontWeight:700 }}>{item.ov?'Overdue':item.status}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -354,8 +202,9 @@ export default function LandingPage() {
         </TiltCard>
       </div>
 
+      {/* Pricing */}
       <div className="pricing-section">
-        <div className="pricing-title">Early access</div>
+        <div className="pricing-title">Simple, honest pricing</div>
         <div className="pricing-sub">Free during beta while we onboard construction teams.</div>
         <div className="pricing-grid">
           {PRICING.map(p => (
@@ -365,7 +214,7 @@ export default function LandingPage() {
               <div className="pricing-features">
                 {p.features.map(f => (
                   <div key={f} className="pricing-feature">
-                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#2e6645" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#1a7a40" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                     {f}
                   </div>
                 ))}
