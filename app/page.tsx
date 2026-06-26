@@ -87,6 +87,9 @@ export default function LandingPage() {
   return (
     <div className="landing" style={{ cursor:'none' }}>
 
+      {/* Horizon glow */}
+      <div className="landing-glow" />
+
       {/* Custom cursor */}
       <div ref={cursorDot} style={{
         position:'fixed', pointerEvents:'none', zIndex:9999,
@@ -98,9 +101,9 @@ export default function LandingPage() {
       <div ref={cursorRing} style={{
         position:'fixed', pointerEvents:'none', zIndex:9998,
         width:32, height:32, borderRadius:'50%',
-        border:'1.5px solid rgba(255,255,255,0.55)',
+        border:'1.5px solid rgba(255,255,255,0.45)',
         transform:'translate(-50%,-50%)',
-        background:'rgba(255,255,255,0.04)',
+        background:'rgba(255,100,0,0.06)',
       }}/>
 
       <style>{`
@@ -141,20 +144,31 @@ export default function LandingPage() {
           </div>
           <span className="landing-wordmark">Chase</span>
         </Link>
-        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <span style={{ fontSize:11, color:'rgba(255,255,255,0.70)', padding:'5px 10px', background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:4 }}>For construction teams</span>
-          <Link href="/app" className="landing-btn landing-btn-secondary">Log in</Link>
-          <Link href="/app" className="landing-btn landing-btn-primary">Get started free</Link>
+        <div style={{ display:'flex', gap:24, alignItems:'center' }}>
+          <span style={{ fontSize:11, fontWeight:600, letterSpacing:'.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.45)' }}>For construction teams</span>
+          <Link href="/app" style={{ fontSize:11, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.65)', textDecoration:'none' }}>Log in</Link>
+          <Link href="/app" className="landing-btn landing-btn-primary" style={{ padding:'9px 22px', fontSize:11, gap:6 }}>
+            Get started free
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </Link>
         </div>
       </nav>
 
       <div className="landing-hero">
         <div className="landing-eyebrow fade-up-1">Construction communication, simplified</div>
-        <h1 className="landing-h1 fade-up-2">Every action. Every follow-up. <em>Nothing missed.</em></h1>
+        <h1 className="landing-h1 fade-up-2">
+          Every action.<br/>Every follow-up.<br/><em>Nothing missed.</em>
+        </h1>
         <p className="landing-sub fade-up-3">Paste a project email and Chase automatically extracts actions, approvals, RFIs and follow-ups into one clean dashboard.</p>
         <div className="landing-actions fade-up-3">
-          <Link href="/app" className="landing-btn landing-btn-primary">Start for free</Link>
-          <Link href="/demo" className="landing-btn landing-btn-secondary">See a demo</Link>
+          <Link href="/app" className="landing-btn landing-btn-primary">
+            Start for free
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </Link>
+          <Link href="/demo" className="landing-btn landing-btn-secondary">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            See a demo
+          </Link>
         </div>
         <div className="landing-note fade-up-3">No credit card &nbsp;·&nbsp; 5-minute setup &nbsp;·&nbsp; Works with any email client</div>
       </div>
