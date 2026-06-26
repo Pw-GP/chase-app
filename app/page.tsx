@@ -27,7 +27,7 @@ const MOCK_ITEMS = [
 const PILL_BG: Record<string,string> = { RFI:'#edf1fc', APR:'#eaf3ee', VAR:'#f8f1e4', DEF:'#f8eded', ACT:'#f0f0ee' }
 const PILL_COL: Record<string,string> = { RFI:'#1a3270', APR:'#1a4a33', VAR:'#5c3e00', DEF:'#6e1f1f', ACT:'#29343a' }
 
-function useTilt(ref: React.RefObject<HTMLDivElement>) {
+function useTilt(ref: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     const el = ref.current; if (!el) return
     const element = el
@@ -57,60 +57,53 @@ function SunsetCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')!
+    const el = canvasRef.current
+    if (!el) return
+    const ctx = el.getContext('2d')
+    if (!ctx) return
 
-    let raf: number
+    let raf = 0
     let offset = 0
 
     function resize() {
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
+      if (!canvasRef.current) return
+      canvasRef.current.width = canvasRef.current.offsetWidth
+      canvasRef.current.height = canvasRef.current.offsetHeight
     }
     resize()
     window.addEventListener('resize', resize)
 
     function draw() {
-      const W = canvas.width, H = canvas.height
+      const c = canvasRef.current
+      if (!c || !ctx) return
+      const W = c.width, H = c.height
       ctx.clearRect(0, 0, W, H)
 
-      // Origin: bottom center, slightly below canvas
       const ox = W * 0.5
       const oy = H * 0.82
-
-      // Number of arc rings and spacing
       const ringCount = 18
       const baseSpacing = Math.max(W, H) * 0.072
 
       for (let i = 0; i < ringCount; i++) {
-        // Each ring moves outward over time, loops back
         const t = ((i / ringCount) + offset) % 1
         const r = t * ringCount * baseSpacing
-
-        // Fade: bright near horizon, fade out near edges
+        if (r < 1) continue
         const alpha = Math.sin(t * Math.PI) * 0.55
-
-        // Glow width scales with ring size
         const lineW = (1 - t) * 2.2 + 0.4
 
         ctx.beginPath()
-        // Draw arc from left to right, upper half only (PI to 2PI = bottom half of circle)
-        // We want arcs that go LEFT and RIGHT from the origin point
         ctx.arc(ox, oy, r, Math.PI, 2 * Math.PI)
 
-        // Orange gradient along the arc
         const grad = ctx.createRadialGradient(ox, oy, r * 0.3, ox, oy, r)
-        grad.addColorStop(0, `rgba(255,100,0,${alpha * 0.9})`)
-        grad.addColorStop(0.5, `rgba(255,60,0,${alpha})`)
-        grad.addColorStop(1, `rgba(180,20,0,${alpha * 0.3})`)
+        grad.addColorStop(0, `rgba(255,100,0,${(alpha * 0.9).toFixed(3)})`)
+        grad.addColorStop(0.5, `rgba(255,60,0,${alpha.toFixed(3)})`)
+        grad.addColorStop(1, `rgba(180,20,0,${(alpha * 0.3).toFixed(3)})`)
 
         ctx.strokeStyle = grad
         ctx.lineWidth = lineW
         ctx.stroke()
       }
 
-      // Horizon glow at origin
       const glow = ctx.createRadialGradient(ox, oy, 0, ox, oy, W * 0.45)
       glow.addColorStop(0, 'rgba(255,120,0,0.22)')
       glow.addColorStop(0.3, 'rgba(255,60,0,0.10)')
@@ -118,7 +111,6 @@ function SunsetCanvas() {
       ctx.fillStyle = glow
       ctx.fillRect(0, 0, W, H)
 
-      // Bright hot spot at horizon
       const spot = ctx.createRadialGradient(ox, oy, 0, ox, oy, W * 0.08)
       spot.addColorStop(0, 'rgba(255,200,100,0.55)')
       spot.addColorStop(0.4, 'rgba(255,80,0,0.22)')
