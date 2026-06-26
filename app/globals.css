@@ -3,11 +3,11 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* Warm cream palette */
-  --cream:    #f5f0e8;
-  --cream2:   #ede7dc;
-  --cream3:   #e4ddd0;
-  --white:    #ffffff;
+  /* Warm parchment palette — matches reference */
+  --cream:    #faf5ec;
+  --cream2:   #f2eadd;
+  --cream3:   #e8dfd0;
+  --white:    #fdfaf5;
 
   --depth:    var(--cream2);   /* sidebar */
   --canvas:   var(--cream);    /* main bg */
@@ -15,13 +15,13 @@
   --lift:     var(--cream2);   /* hover */
 
   --bg:       var(--canvas);
-  --border:   rgba(0,0,0,0.10);
-  --border2:  rgba(0,0,0,0.18);
+  --border:   rgba(0,0,0,0.09);
+  --border2:  rgba(0,0,0,0.16);
 
-  --text:     #1a1410;
-  --text2:    rgba(26,20,16,0.70);
-  --text3:    rgba(26,20,16,0.45);
-  --text4:    rgba(26,20,16,0.28);
+  --text:     #18120c;
+  --text2:    rgba(24,18,12,0.72);
+  --text3:    rgba(24,18,12,0.40);
+  --text4:    rgba(24,18,12,0.24);
 
   /* Accent — warm orange */
   --blue:     #c04e01;
@@ -59,8 +59,8 @@ body {
   font-family: var(--f);
   background: var(--bg);
   color: var(--text);
-  font-size: 13.5px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   font-weight: 400;
 }
