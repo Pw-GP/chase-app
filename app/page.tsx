@@ -91,16 +91,16 @@ export default function LandingPage() {
       <div ref={cursorDot} style={{
         position:'fixed', pointerEvents:'none', zIndex:9999,
         width:8, height:8, borderRadius:'50%',
-        background:'linear-gradient(135deg,#2a4fa8,#61c0bf)',
+        background:'#ffffff',
         transform:'translate(-50%,-50%)',
         opacity:0, transition:'opacity 0.3s',
       }}/>
       <div ref={cursorRing} style={{
         position:'fixed', pointerEvents:'none', zIndex:9998,
         width:32, height:32, borderRadius:'50%',
-        border:'1.5px solid rgba(42,79,168,0.4)',
+        border:'1.5px solid rgba(255,255,255,0.55)',
         transform:'translate(-50%,-50%)',
-        background:'rgba(97,192,191,0.05)',
+        background:'rgba(255,255,255,0.04)',
       }}/>
 
       <style>{`
@@ -142,7 +142,7 @@ export default function LandingPage() {
           <span className="landing-wordmark">Chase</span>
         </Link>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <span style={{ fontSize:11, color:'var(--text3)', padding:'5px 10px', background:'var(--bg)', borderRadius:4 }}>For construction teams</span>
+          <span style={{ fontSize:11, color:'rgba(255,255,255,0.70)', padding:'5px 10px', background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:4 }}>For construction teams</span>
           <Link href="/app" className="landing-btn landing-btn-secondary">Log in</Link>
           <Link href="/app" className="landing-btn landing-btn-primary">Get started free</Link>
         </div>
@@ -157,13 +157,6 @@ export default function LandingPage() {
           <Link href="/demo" className="landing-btn landing-btn-secondary">See a demo</Link>
         </div>
         <div className="landing-note fade-up-3">No credit card &nbsp;·&nbsp; 5-minute setup &nbsp;·&nbsp; Works with any email client</div>
-      </div>
-
-      {/* Auto-scrolling roles strip */}
-      <div className="roles-strip roles-scroll-wrap" style={{ padding:'18px 0' }}>
-        <div className="roles-scroll">
-          {[...ROLES, ...ROLES].map((r, i) => <span key={i} className="role-pill" style={{ flexShrink:0 }}>{r}</span>)}
-        </div>
       </div>
 
       <div className="how-section">
