@@ -53,6 +53,98 @@ function TiltCard({ children, className, style }: { children: React.ReactNode, c
   return <div ref={ref} className={className} style={{ ...style, transition:'transform 0.18s ease, box-shadow 0.18s ease' }}>{children}</div>
 }
 
+function SunsetCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')!
+
+    let raf: number
+    let offset = 0
+
+    function resize() {
+      canvas.width = canvas.offsetWidth
+      canvas.height = canvas.offsetHeight
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    function draw() {
+      const W = canvas.width, H = canvas.height
+      ctx.clearRect(0, 0, W, H)
+
+      // Origin: bottom center, slightly below canvas
+      const ox = W * 0.5
+      const oy = H * 0.82
+
+      // Number of arc rings and spacing
+      const ringCount = 18
+      const baseSpacing = Math.max(W, H) * 0.072
+
+      for (let i = 0; i < ringCount; i++) {
+        // Each ring moves outward over time, loops back
+        const t = ((i / ringCount) + offset) % 1
+        const r = t * ringCount * baseSpacing
+
+        // Fade: bright near horizon, fade out near edges
+        const alpha = Math.sin(t * Math.PI) * 0.55
+
+        // Glow width scales with ring size
+        const lineW = (1 - t) * 2.2 + 0.4
+
+        ctx.beginPath()
+        // Draw arc from left to right, upper half only (PI to 2PI = bottom half of circle)
+        // We want arcs that go LEFT and RIGHT from the origin point
+        ctx.arc(ox, oy, r, Math.PI, 2 * Math.PI)
+
+        // Orange gradient along the arc
+        const grad = ctx.createRadialGradient(ox, oy, r * 0.3, ox, oy, r)
+        grad.addColorStop(0, `rgba(255,100,0,${alpha * 0.9})`)
+        grad.addColorStop(0.5, `rgba(255,60,0,${alpha})`)
+        grad.addColorStop(1, `rgba(180,20,0,${alpha * 0.3})`)
+
+        ctx.strokeStyle = grad
+        ctx.lineWidth = lineW
+        ctx.stroke()
+      }
+
+      // Horizon glow at origin
+      const glow = ctx.createRadialGradient(ox, oy, 0, ox, oy, W * 0.45)
+      glow.addColorStop(0, 'rgba(255,120,0,0.22)')
+      glow.addColorStop(0.3, 'rgba(255,60,0,0.10)')
+      glow.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.fillStyle = glow
+      ctx.fillRect(0, 0, W, H)
+
+      // Bright hot spot at horizon
+      const spot = ctx.createRadialGradient(ox, oy, 0, ox, oy, W * 0.08)
+      spot.addColorStop(0, 'rgba(255,200,100,0.55)')
+      spot.addColorStop(0.4, 'rgba(255,80,0,0.22)')
+      spot.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.fillStyle = spot
+      ctx.fillRect(0, 0, W, H)
+
+      offset = (offset + 0.0018) % 1
+      raf = requestAnimationFrame(draw)
+    }
+
+    draw()
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize) }
+  }, [])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'absolute', inset: 0, width: '100%', height: '100%',
+        pointerEvents: 'none', zIndex: 0,
+      }}
+    />
+  )
+}
+
 export default function LandingPage() {
   const cursorDot = useRef<HTMLDivElement>(null)
   const cursorRing = useRef<HTMLDivElement>(null)
@@ -87,8 +179,8 @@ export default function LandingPage() {
   return (
     <div className="landing" style={{ cursor:'none' }}>
 
-      {/* Horizon glow */}
-      <div className="landing-glow" />
+      {/* Animated sunset canvas */}
+      <SunsetCanvas />
 
       {/* Custom cursor */}
       <div ref={cursorDot} style={{
