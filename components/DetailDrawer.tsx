@@ -12,9 +12,9 @@ function isOverdue(item: any) {
   return new Date(item.due_date+'T23:59:59') < new Date()
 }
 
-interface Props { item: any; onClose: () => void; onUpdated: () => void }
+interface Props { item: any; onClose: () => void; onUpdated: () => void; projects?: any[] }
 
-export default function DetailDrawer({ item, onClose, onUpdated }: Props) {
+export default function DetailDrawer({ item, onClose, onUpdated, projects = [] }: Props) {
   const [status, setStatus] = useState(item.status)
   const [notes, setNotes] = useState(item.notes || '')
   const [followUp, setFollowUp] = useState('')
@@ -26,6 +26,7 @@ export default function DetailDrawer({ item, onClose, onUpdated }: Props) {
   const [responsible, setResponsible] = useState(item.responsible || '')
   const [company, setCompany] = useState(item.company || '')
   const [discipline, setDiscipline] = useState(item.discipline || '')
+  const [projectId, setProjectId] = useState(item.project_id || '')
   const [dueDate, setDueDate] = useState(item.due_date || '')
   const [actionRequired, setActionRequired] = useState(item.action_required || '')
 
@@ -36,7 +37,7 @@ export default function DetailDrawer({ item, onClose, onUpdated }: Props) {
   async function save() {
     await fetch('/api/items', {
       method:'PATCH', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ id:item.id, status, notes, title, type, responsible, company, discipline, due_date:dueDate, action_required:actionRequired })
+      body:JSON.stringify({ id:item.id, status, notes, title, type, responsible, company, discipline, due_date:dueDate, action_required:actionRequired, project_id:projectId })
     })
     showToast('Saved'); onUpdated()
   }
@@ -102,6 +103,17 @@ export default function DetailDrawer({ item, onClose, onUpdated }: Props) {
               </select>
             </div>
           </div>
+
+          {/* Project */}
+          {projects.length > 0 && (
+            <div style={{borderBottom:'1px solid var(--border)',padding:'11px 16px'}}>
+              <div style={{fontSize:9,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--text3)',marginBottom:6}}>Project</div>
+              <select className="form-select" value={projectId} onChange={e=>setProjectId(e.target.value)}>
+                <option value="">— No project —</option>
+                {projects.map((p:any)=><option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+          )}
 
           {/* Responsible + Company */}
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',borderBottom:'1px solid var(--border)'}}>

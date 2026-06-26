@@ -292,7 +292,7 @@ export default function Dashboard() {
       </div>
       {detail && (
         <div style={{position:'absolute',inset:0}}>
-          <DetailDrawer item={detail} onClose={()=>setDetail(null)} onUpdated={()=>{load();setDetail((d:any)=>d?{...d}:null)}} />
+          <DetailDrawer item={detail} onClose={()=>setDetail(null)} onUpdated={()=>{load();setDetail((d:any)=>d?{...d}:null)}} projects={projects} />
         </div>
       )}
     </>
